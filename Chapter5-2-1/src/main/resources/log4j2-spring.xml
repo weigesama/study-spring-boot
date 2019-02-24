@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    主标签，有两个log4j2的关键属性：
+    status：设置log4j2的自身log级别。日志级别： OFF > FATAL > ERROR > WARN > INFO > DEBUG > TRACE > ALL，
+    其中 off 表示关闭日志输出，fatal 表示严重错误。
+    monitorInterval：Log4j2能够自动检测配置文件变化，并使用新的配置，这个单位是秒。
+-->
+<Configuration status="off">
+
+    <!--自定义属性-->
+    <properties>
+        <!--定义日志文件存放目录-->
+        <property name="logPath">D:/ServerDEVLogs/log4j2-test</property>
+        <!--输出日志的格式：
+            %d{yyyy-MM-dd HH:mm:ss, SSS}：日志生产时间
+            %t：打印日志方法所在线程名
+            %p：日志输出格式
+            %c：logger的名称
+            %m：日志内容，即 logger.info("message")
+            %n：换行符
+            %C：Java类名
+            %L：日志输出所在行数
+            %M：日志输出所在方法名
+            hostName：本地机器名
+            hostAddress：本地ip地址
+        -->
+        <property name="pattern">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36}.%M(%L)： %msg%xEx%n</property>
+    </properties>
+
+    <!--先定义所有的appender(输出器)-->
+    <Appenders>
+
+        <!--输出到控制台（适合开发环境）-->
+        <Console name="ConsoleLog" target="SYSTEM_OUT">
+            <!--只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch） -->
+            <ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY"/>
+            <!--输出日志的格式，引用自定义模板 pattern -->
+            <PatternLayout pattern="${pattern}"/>
+        </Console>
+
+        <!--输出到非循环日志文件（适合测试环境）：
+            文件会打印出所有信息，这个log每次运行程序会自动清空，由append属性决定（append为TRUE表示消息增加到指定文件中，false表示消息覆盖指定的文件内容，默认值是true）。
+            根据这个特性，可以在远程测试环境上面用到这个。
+        -->
+        <File name="TestLog" fileName="${logPath}/test.log" append="false">
+            <PatternLayout pattern="${pattern}"/>
+        </File>
+
+        <!--输出到循环日志文件（适合生产环境）-->
+        <RollingFile name="RollingFileLog" fileName="${logPath}/app.log"
+                     filePattern="${logPath}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz">
+            <ThresholdFilter level="debug" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="${pattern}"/>
+            <!--每当日志大小超过size，则这size大小的日志会自动存入按年份-月份建立的文件夹下面并进行压缩，作为存档-->
+            <SizeBasedTriggeringPolicy size="100MB"/>
+            <!--DefaultRolloverStrategy属性如不设置，则默认为最多同一文件夹下7个文件，这里设置了20-->
+            <DefaultRolloverStrategy max="20"/>
+        </RollingFile>
+    </Appenders>
+
+    <!--然后定义logger，只有定义了logger并引入上面定义的appender，appender才会生效 -->
+    <Loggers>
+        <!--建立一个默认的Root的logger，记录>=level的信息，如果这里的level高于Appenders中的，则Appenders中也是以此等级为起点。
+            比如，这里level="fatal"，则Appenders中只出现fatal信息。
+            温馨提示：生产环境level建议设置为warn
+        -->
+        <Root level="info">
+            <!-- 输出器，可选上面定义的任何项组合，或全选-->
+            <appender-ref ref="ConsoleLog"/>
+            <appender-ref ref="TestLog"/>
+        </Root>
+
+        <!--过滤掉spring和mybatis的一些无用的DEBUG信息，也可以在springboot 的logging.level.org.springframework=FATAL设置-->
+        <logger name="org.springframework" level="INFO"></logger>
+        <logger name="org.mybatis" level="INFO"></logger>
+        <logger name="org.apache.http" level="WARN" />
+    </Loggers>
+</Configuration>

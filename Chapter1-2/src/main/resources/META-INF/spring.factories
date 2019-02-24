@@ -1,0 +1,6 @@
+org.springframework.context.ApplicationListener=xyz.yuanwl.boot.ApplicationEnvironmentPreparedEventListener,\
+  xyz.yuanwl.boot.ApplicationFailedEventListener,\
+  xyz.yuanwl.boot.ApplicationPreparedEventListener,\
+  xyz.yuanwl.boot.ApplicationReadyEventListener,\
+  xyz.yuanwl.boot.ApplicationStartedEventListener,\
+  xyz.yuanwl.boot.ApplicationStartingEventListener

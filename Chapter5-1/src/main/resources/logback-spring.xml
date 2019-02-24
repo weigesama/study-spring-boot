@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+    <!--导入默认的配置，在下面会引用到-->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <!--自定义属性。自定义日志输出目录，这里/表示程序所在的磁盘根目录，Windows则是分区盘符根目录-->
+    <property name="log.path" value="/.logs/logback-test"/>
+
+    <!--普通日志。日期滚动记录-->
+    <appender name="NormalLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <!--日志文件的格式-->
+        <encoder>
+            <!--使用默认的日志格式-->
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <!--编码格式-->
+            <charset>utf-8</charset>
+        </encoder>
+
+        <!--日志文件名。所定义的路径可以是相对目录，也可以是绝对目录，如果文件的上级目录不存在会自动创建。没有默认值。-->
+        <file>${log.path}/app-normal.log</file>
+
+        <!--过滤器，只记录符合条件的日志。要使用这个过滤器，需要添加commons-compiler和janino依赖-->
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <!--默认为 ch.qos.logback.classic.boolex.JaninoEventEvaluator-->
+            <evaluator>
+                <!--表达式，返回true时，表示该日志通过过滤（匹配）。这里表示等级低于ERROR的日志才记录，注意小于号要用转义字符表示-->
+                <expression>return level &lt; ERROR;</expression>
+            </evaluator>
+            <!--匹配的，接受并打印之。ACCEPT表示接受-->
+            <OnMatch>ACCEPT</OnMatch>
+            <!--不匹配的，拒绝，不打印。DENY表示拒绝-->
+            <OnMismatch>DENY</OnMismatch>
+        </filter>
+
+        <!--日志记录器的滚动策略，按日期、文件大小记录-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--归档的日志文件的路径，例如今天是2018-09-19日志，当前写的日志文件路径为file节点指定，可以将此文件与file指定文件路径设置为不同路径，
+                从而将当前日志文件或归档日志文件置不同的目录。而2018-09-19的日志文件在由fileNamePattern指定。%d{yyyy-MM-dd}指定日期格式，%i指定索引-->
+            <fileNamePattern>${log.path}/app-normal-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <MaxFileSize>500MB</MaxFileSize>
+            <!--保留7天-->
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+
+    </appender>
+
+    <!--错误日志。日期滚动记录-->
+    <appender name="ErrorLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>utf-8</charset>
+        </encoder>
+        <file>${log.path}/app-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <!--记录ERROR及以上级别日志，其他拒绝-->
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${log.path}/app-error-%d{yyyy-MM-dd}-%i.log</fileNamePattern>
+            <MaxFileSize>500MB</MaxFileSize>
+            <maxHistory>15</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!--BlockingQueue缓存日志-->
+    <appender name="AsyncNormalLog" class="ch.qos.logback.classic.AsyncAppender">
+        <!--不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志-->
+        <!--<discardingThreshold >0</discardingThreshold>-->
+        <!--更改默认的队列的深度,该值会影响性能.默认值为256-->
+        <queueSize>512</queueSize>
+        <!--添加附加的appender，最多只能添加一个-->
+        <appender-ref ref="NormalLog"/>
+    </appender>
+
+    <appender name="AsyncErrorLog" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="ErrorLog"/>
+    </appender>
+
+
+    <!--多环境配置-->
+    <!--开发环境，只需要在控制台打印日志-->
+    <springProfile name="dev">
+        <!--打印DEBUG或者以上级别日志-->
+        <root level="DEBUG">
+            <!--这里引用的是默认定义的appender-->
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!--测试环境，需要把日志打印到文件，不需要用异步队列打印-->
+    <springProfile name="test">
+        <!--一般至少打印INFO级别，方便查错-->
+        <root level="INFO">
+            <appender-ref ref="NormalLog"/>
+            <appender-ref ref="ErrorLog"/>
+        </root>
+    </springProfile>
+
+    <!--生产环境，需要把日志打印到文件，用异步队列打印以提高性能-->
+    <springProfile name="prod">
+        <!--生产环境是经过多次测试后才发布的，这时应该很少bug，所以最多打印一些警告信息-->
+        <root level="WARN">
+            <appender-ref ref="AsyncNormalLog"/>
+            <appender-ref ref="AsyncErrorLog"/>
+        </root>
+    </springProfile>
+
+</configuration>

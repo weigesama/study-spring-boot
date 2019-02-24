@@ -1,0 +1,1 @@
+关于springboot2.x配置多数据源出现jdbcUrl is required with driverClassName的错误：https://blog.csdn.net/newhanzhe/article/details/80763581 方法一即可
